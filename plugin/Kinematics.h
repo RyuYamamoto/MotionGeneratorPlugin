@@ -46,7 +46,7 @@ public:
 	 * @param[in] RFLink 右足先の位置・姿勢
 	 * @param[in] LFLink 左足先の位置・姿勢
 	 */
-	void calcInverseKinematics(float *angle, cit::Link RFLink, cit::Link LFLink);
+	bool calcInverseKinematics(float *angle, cit::Link RFLink, cit::Link LFLink);
 
 private:
 	/*!
@@ -60,7 +60,7 @@ private:
 	 * @param[in] to 位置・姿勢を計算するリンク番号の列
 	 * @param[in] target リンクの位置・姿勢の目標の列
 	 */
-	void InverseKinematics(vector<int> to, vector<cit::Link> target);
+	bool InverseKinematics(vector<int> to, vector<cit::Link> target);
 
 	/*
 	 * @brief 胴体から目標リンクへ至る経路

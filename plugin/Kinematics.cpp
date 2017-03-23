@@ -191,7 +191,7 @@ t_matrix PseudoInverse(const t_matrix& m, const float &tolerance=1.e-6)
 /*!
  * @brief 逆運動学を計算するための関数
  */
-void Kinematics::InverseKinematics(vector<int> to, vector<cit::Link> target)
+bool Kinematics::InverseKinematics(vector<int> to, vector<cit::Link> target)
 {
 	const float EPS = 1.0e-6;
 	const float lambda = 0.5f;
@@ -234,6 +234,7 @@ void Kinematics::InverseKinematics(vector<int> to, vector<cit::Link> target)
 		link[Const::LP4].q = - link[Const::LP3].q;
 		ForwardKinematics(Const::CC);
 	}
+	return true;
 }
 
 /*
@@ -329,7 +330,7 @@ MatrixXf Kinematics::CalcJacobian(std::vector<int> idx)
  * @param[in] RFLink 右足先の位置・姿勢
  * @param[in] LFLink 左足先の位置・姿勢
  */
-void Kinematics::calcInverseKinematics(float *angle, cit::Link RFLink, cit::Link LFLink)
+bool Kinematics::calcInverseKinematics(float *angle, cit::Link RFLink, cit::Link LFLink)
 {
 	float q2, q3, q4, q4a, q5, q6, q7;
 	vector<int> to;
@@ -341,8 +342,10 @@ void Kinematics::calcInverseKinematics(float *angle, cit::Link RFLink, cit::Link
 	to.push_back(Const::LR2);			// 左足の設定
 	target.push_back(LFLink);
 
-	InverseKinematics(to, target);		// 逆運動学の計算
-	
+	if(!InverseKinematics(to, target)){		// 逆運動学の計算
+		std::cerr << "Could not calculation inverse kinematics." << std::endl;
+		return false;
+	}
 	angle[Const::FOOT_ROLL_R] =  link[Const::RR2].q						;	// 足首ロール軸
 	angle[Const::KNEE_R1    ] = -link[Const::RP4].q						;	// 足首ピッチ軸
 	angle[Const::KNEE_R2    ] = -link[Const::RP2].q						;	// 膝上ピッチ軸
@@ -356,6 +359,8 @@ void Kinematics::calcInverseKinematics(float *angle, cit::Link RFLink, cit::Link
 	angle[Const::LEG_PITCH_L] =  link[Const::LP1].q + link[Const::LP2].q;	// 股ピッチ軸
 	angle[Const::LEG_ROLL_L ] =  link[Const::LR1].q						;	// 股ロール軸
 	angle[Const::LEG_YAW_L  ] =  link[Const::LY ].q						;	// 股ヨー軸
+
+	return true;
 }
 
 
