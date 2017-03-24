@@ -17,7 +17,7 @@ using namespace std;
 using namespace cnoid;
 
 //実機との符号調整
-const int sign[] = {-1,1,-1,-1,1,1,1,-1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1}; 
+const int sign[] = {1,1,1,1,1,1,1,-1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1}; 
 
 class MotionGeneratorPlugin : public Plugin
 {
@@ -76,7 +76,7 @@ public:
         ItemList<BodyItem> bodyItems = ItemTreeView::mainInstance()->selectedItems<BodyItem>();
 		BodyPtr body = bodyItems[0]->body();
 
-		RFLink.p(1) += dq; 
+		LFLink.p(2) += dq; 
         if(kine->calcInverseKinematics(servo_angle, RFLink, LFLink)){
 			for(int i=0;i<12;i++)
 				body->joint(i)->q() = servo_angle[i] * sign[i];
