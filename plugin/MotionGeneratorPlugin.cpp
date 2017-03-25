@@ -19,7 +19,54 @@ using namespace std;
 using namespace cnoid;
 
 //実機との符号調整
-const int sign[] = {1,1,1,1,1,1,1,-1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1}; 
+const int sign[] = {1,1,1,1,1,1,1,-1,1,-1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1}; 
+const double step[] = {0.005,0.005,0.005,0.5,0.5,0.5};
+const double limit_max[] = {10.0,10.0,10.0,50.0,50.0,50.0};
+const double limit_min[] = {-10.0,-10.0,-10.0,-50.0,-50.0,-50.0};
+
+float deg2rad(float degree){
+	return degree * M_PI / 180.0f;
+}
+
+float rad2deg(float radian){
+	return radian * 180.0f / M_PI;
+}
+
+Eigen::Matrix<float,3,3> computeMatrixFromAngles(float r, float p, float y)
+{
+	Eigen::Matrix<float,3,3> R;
+
+	R(0,0) = cos(p) * cos(y) - sin(r) * sin(p) * sin(y);
+	R(0,1) = -cos(r) * sin(y);
+	R(0,2) = sin(r) * cos(y) + sin(r) * cos(p) * sin(y);
+	R(1,0) = cos(p) * sin(y) + sin(r) * sin(p) * cos(y);
+	R(1,1) = cos(r) * cos(y);
+	R(1,2) = sin(p) * sin(y) - sin(r) * cos(p) * cos(y);
+	R(2,0) = -cos(r) * sin(p);
+	R(2,1) = sin(r);
+	R(2,2) = cos(r) * cos(p);	
+
+	return R;
+}
+
+void computeAnglesFromMatrix(Eigen::Matrix<float,3,3> R, float &r, float &p, float &y)
+{
+	float threshold = 0.001;
+  if(abs(R(2,1) - 1.0) < threshold){ // R(2,1) = sin(x) = 1の時
+    r = M_PI / 2;
+    p = 0;
+    y = atan2(R(1,0), R(0,0));
+  }else if(abs(R(2,1) + 1.0) < threshold){ // R(2,1) = sin(x) = -1の時
+    r = - M_PI / 2;
+    p = 0;
+    y = atan2(R(1,0), R(0,0));
+  }else{
+    r = asin(R(2,1));
+    p = atan2(-R(2,0), R(2,2));
+    y = atan2(-R(0,1), R(1,1));
+  }
+}
+
 
 class MotionGeneratorPlugin : public Plugin
 {
@@ -27,8 +74,9 @@ class MotionGeneratorPlugin : public Plugin
 		Kinematics *kine;
 		cit::Link ulink[Const::LINK_NUM];
 		cit::Link RFLink, LFLink;
+		cit::Link RFLink_org, LFLink_org;
 		float servo_angle[Const::LINK_NUM];
-		DoubleSpinBox *footSpin;
+		DoubleSpinBox *footSpin[6];
 	public:
 
 		MotionGeneratorPlugin() : Plugin("MotionGenerator")
@@ -45,21 +93,21 @@ class MotionGeneratorPlugin : public Plugin
 		virtual bool initialize()
 		{
 			ToolBar* bar = new ToolBar("MotionGenerator");
-			footSpin = new DoubleSpinBox();
+			for(int i=0;i<6;i++) footSpin[i] = new DoubleSpinBox();
 
-			//bar->addButton("x++")
-				//->sigClicked().connect(bind(&MotionGeneratorPlugin::set_x_pos, this, +0.005));
-			//bar->addButton("x--")
-				//->sigClicked().connect(bind(&MotionGeneratorPlugin::set_x_pos, this, -0.005));
 			bar->addButton("Get Current Jont State")
 				->sigClicked().connect(bind(&MotionGeneratorPlugin::getCurrentJointState, this ));
 
-			footSpin->setAlignment(Qt::AlignCenter);
-			footSpin->setDecimals(4);
-			footSpin->setSingleStep(0.001);
-			footSpin->setRange(-10.0, 10.0);
-			footSpin->sigValueChanged().connect(bind(&MotionGeneratorPlugin::set_x_pos, this));
-			bar->addWidget(footSpin);
+			for(int i=0;i<6;i++){
+				footSpin[i]->setAlignment(Qt::AlignCenter);
+				footSpin[i]->setDecimals(4);
+				footSpin[i]->setSingleStep(step[i]);
+				footSpin[i]->setRange(limit_min[i], limit_max[i]);
+			}
+			
+			for(int i=0;i<3;i++) footSpin[i]->sigValueChanged().connect(bind(&MotionGeneratorPlugin::set_target_pos, this));
+			for(int i=3;i<6;i++) footSpin[i]->sigValueChanged().connect(bind(&MotionGeneratorPlugin::set_target_rot, this));
+			for(int i=0;i<6;i++) bar->addWidget(footSpin[i]);
 
 			addToolBar(bar);
 			return true;
@@ -79,30 +127,22 @@ class MotionGeneratorPlugin : public Plugin
 			kine->calcForwardKinematics();
 
 			//足先位置・姿勢更新
-			RFLink = ulink[Const::RR2];
-			LFLink = ulink[Const::LR2];
+			RFLink_org = RFLink = ulink[Const::RR2];
+			LFLink_org = LFLink = ulink[Const::LR2];
 		}
 
-		void set_x_pos()
+		void set_target_pos()
 		{
-			RFLink.p(0) -= footSpin->value();
-			LFLink.p(0) += footSpin->value();;
+			RFLink.p <<  RFLink_org.p(0) - footSpin[0]->value(), RFLink_org.p(1) + footSpin[1]->value(), RFLink.p(2) = RFLink_org.p(2) + footSpin[2]->value();;
+			LFLink.p <<  LFLink_org.p(0) + footSpin[0]->value(), LFLink_org.p(1) + footSpin[1]->value(), LFLink.p(2) = LFLink_org.p(2) + footSpin[2]->value();;
 
 			calcInverseKinematics();
 		}
 
-		void set_y_pos(double y)
+		void set_target_rot()
 		{
-			RFLink.p(1) += y;
-			LFLink.p(1) += y;
-
-			calcInverseKinematics();
-		}
-		
-		void set_z_pos(double z)
-		{
-			RFLink.p(2) += z;
-			LFLink.p(2) += z;
+			RFLink.R = computeMatrixFromAngles(deg2rad(footSpin[3]->value()), -1*deg2rad(footSpin[4]->value()), deg2rad(footSpin[5]->value()));
+			LFLink.R = computeMatrixFromAngles(deg2rad(footSpin[3]->value()), deg2rad(footSpin[4]->value()), deg2rad(footSpin[5]->value()));
 
 			calcInverseKinematics();
 		}
