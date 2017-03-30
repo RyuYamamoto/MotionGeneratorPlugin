@@ -59,6 +59,8 @@ class MotionGeneratorPlugin : public Plugin
 		void set_target_pos();
 		void set_target_rot();
 		void calcInverseKinematics();
+		Eigen::Matrix<float,3,3> computeMatrixFromAngles(float r, float p, float y);
+		void computeAnglesFromMatrix(Eigen::Matrix<float,3,3> R, float &r, float &p, float &y);
 };
 
 CNOID_IMPLEMENT_PLUGIN_ENTRY(MotionGeneratorPlugin)

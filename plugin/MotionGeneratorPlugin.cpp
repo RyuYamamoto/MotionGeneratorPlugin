@@ -17,7 +17,7 @@ Eigen::Matrix<float,3,3> MotionGeneratorPlugin::computeMatrixFromAngles(float r,
 	return R;
 }
 
-void MotiongeneratorPlugin::computeAnglesFromMatrix(Eigen::Matrix<float,3,3> R, float &r, float &p, float &y)
+void MotionGeneratorPlugin::computeAnglesFromMatrix(Eigen::Matrix<float,3,3> R, float &r, float &p, float &y)
 {
 	float threshold = 0.001;
 	if(abs(R(2,1) - 1.0) < threshold){ // R(2,1) = sin(x) = 1の時
@@ -35,7 +35,7 @@ void MotiongeneratorPlugin::computeAnglesFromMatrix(Eigen::Matrix<float,3,3> R, 
 	}
 }
 
-virtual bool MotionGeneratorPlugin::initialize()
+bool MotionGeneratorPlugin::initialize()
 {
 	ToolBar* bar = new ToolBar("MotionGenerator");
 	for(int i=0;i<6;i++) footSpin[i] = new DoubleSpinBox();
@@ -58,7 +58,7 @@ virtual bool MotionGeneratorPlugin::initialize()
 	return true;
 }
 
-void MotoinGeneratorPlugin::getCurrentJointState()
+void MotionGeneratorPlugin::getCurrentJointState()
 {
 	ItemList<BodyItem> bodyItems = ItemTreeView::mainInstance()->selectedItems<BodyItem>();
 	BodyPtr body = bodyItems[0]->body();
