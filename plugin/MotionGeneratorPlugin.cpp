@@ -42,6 +42,8 @@ bool MotionGeneratorPlugin::initialize()
 
 	bar->addButton("Get Current Jont State")
 		->sigClicked().connect(bind(&MotionGeneratorPlugin::getCurrentJointState, this ));
+	bar->addButton("offset load")
+		->sigClicked().connect(bind(&MotionGeneratorPlugin::offset_load, this));
 	bar->addButton("TorqueON")
 		->sigClicked().connect(bind(&MotionGeneratorPlugin::torqueON, this));
 	bar->addButton("TorqueOFF")
@@ -63,7 +65,7 @@ bool MotionGeneratorPlugin::initialize()
 	servoMotor->set_torque_all(64);
 
 	if(!sendAngleThread.joinable())
-		sendAngleThread = std::thread(std::bind(MotionGeneratorPlugin::sendAngleRequest()));
+		sendAngleThread = std::thread(std::bind(&MotionGeneratorPlugin::sendAngleRequest, this));
 
 	return true;
 }
@@ -71,19 +73,47 @@ bool MotionGeneratorPlugin::initialize()
 void MotionGeneratorPlugin::torqueON()
 {
 	servoMotor->enable_torque_all(1);
+	torque_flag = true;
 }
 
 void MotionGeneratorPlugin::torqueOFF()
 {
 	servoMotor->enable_torque_all(0);
+	torque_flag = false;
+}
+
+void MotionGeneratorPlugin::offset_load()
+{
+	FILE *fp;
+	if((fp = fopen("/home/haze/offset_angle.txt","r")) == NULL)
+		cerr << "file not exist." << endl;
+
+	int id,offset;	
+	char joint_name[50];
+	while(fscanf(fp,"%d %d %s",&id,&offset,joint_name) != EOF)
+	{
+		offset_angle[id] = offset;
+	}
+	
+	fclose(fp);
 }
 
 void MotionGeneratorPlugin::sendAngleRequest()
 {
 	while(true)
 	{
-		for(int i=0;i<12;i++)
-			servoMotor->set_joint_angle(i,10,ra2deg(servo_angle[i])*100);
+		sendAngleMutex.lock();
+		bool f = torque_flag;
+		sendAngleMutex.unlock();
+
+		if(f){
+			for(int i=0;i<6;i++){
+				short deg_sv = (unsigned short)rad2deg(servo_angle[i])*100;
+				short pls = deg_sv * 1000 / 10000;
+				short pls_out = (unsigned short)(deg_sv & 0xFFFF);
+				servoMotor->set_joint_angle(i,1,pls + offset_angle[i]);
+			}
+		}
 	}
 }
 
@@ -142,4 +172,3 @@ void MotionGeneratorPlugin::calcInverseKinematics()
 	bodyItems[0]->notifyKinematicStateChange(true);
 }
 
-void MotionGeneratorPlugin::
