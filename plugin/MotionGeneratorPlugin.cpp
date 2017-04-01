@@ -62,6 +62,9 @@ bool MotionGeneratorPlugin::initialize()
 	servoMotor->rs405cb_open();
 	servoMotor->set_torque_all(64);
 
+	if(!sendAngleThread.joinable())
+		sendAngleThread = std::thread(std::bind(MotionGeneratorPlugin::sendAngleRequest()));
+
 	return true;
 }
 
@@ -73,6 +76,15 @@ void MotionGeneratorPlugin::torqueON()
 void MotionGeneratorPlugin::torqueOFF()
 {
 	servoMotor->enable_torque_all(0);
+}
+
+void MotionGeneratorPlugin::sendAngleRequest()
+{
+	while(true)
+	{
+		for(int i=0;i<12;i++)
+			servoMotor->set_joint_angle(i,10,ra2deg(servo_angle[i])*100);
+	}
 }
 
 void MotionGeneratorPlugin::getCurrentJointState()
@@ -128,8 +140,6 @@ void MotionGeneratorPlugin::calcInverseKinematics()
 		body->joint(24)->q() = body->joint(7)->q();
 	}
 	bodyItems[0]->notifyKinematicStateChange(true);
-
-	servoMotor->set_joint_angle(0,10,rad2deg(servo_angle[0])*100);
-	servoMotor->set_joint_angle(1,10,rad2deg(servo_angle[1])*100);
 }
 
+void MotionGeneratorPlugin::

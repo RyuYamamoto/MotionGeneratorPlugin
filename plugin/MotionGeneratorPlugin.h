@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <thread>
 
 #include "Kinematics.h"
 #include "Link.h"
@@ -36,6 +37,7 @@ float rad2deg(float radian){
 class MotionGeneratorPlugin : public Plugin
 {
 	private:
+		std::thread sendAngleTread;
 		Kinematics *kine;
 		rs405cb *servoMotor;
 		cit::Link ulink[Const::LINK_NUM];
@@ -60,6 +62,7 @@ class MotionGeneratorPlugin : public Plugin
 		virtual bool initialize();
 		void torqueON();
 		void torqueOFF();
+		void sendAngleRequest();
 		void getCurrentJointState();
 		void set_target_pos();
 		void set_target_rot();
