@@ -14,6 +14,7 @@
 #include "Kinematics.h"
 #include "Link.h"
 #include "Constant.h"
+#include "rs405cb.h"
 
 using namespace std;
 using namespace cnoid;
@@ -36,6 +37,7 @@ class MotionGeneratorPlugin : public Plugin
 {
 	private:
 		Kinematics *kine;
+		rs405cb *servoMotor;
 		cit::Link ulink[Const::LINK_NUM];
 		cit::Link RFLink, LFLink;
 		cit::Link RFLink_org, LFLink_org;
@@ -49,12 +51,15 @@ class MotionGeneratorPlugin : public Plugin
 
 		cit::initLink(ulink);
 		kine = new Kinematics(ulink);
+		servoMotor = new rs405cb("/dev/ttyUSB0", 460800);
 
 		for(int i=0;i<Const::LINK_NUM;i++)
 			servo_angle[i] = 0.0f;
 	}
 
 		virtual bool initialize();
+		void torqueON();
+		void torqueOFF();
 		void getCurrentJointState();
 		void set_target_pos();
 		void set_target_rot();

@@ -24,7 +24,7 @@ void MotionGeneratorPlugin::computeAnglesFromMatrix(Eigen::Matrix<float,3,3> R, 
 		r = M_PI / 2;
 		p = 0;
 		y = atan2(R(1,0), R(0,0));
-	}else if(abs(R(2,1) + 1.0) < threshold){ // R(2,1) = sin(x) = -1の時
+	}else if(abs(R(2,1) + 1.0) < threshold){ // R(2,1) = sin(x) = -1の時t
 		r = - M_PI / 2;
 		p = 0;
 		y = atan2(R(1,0), R(0,0));
@@ -42,6 +42,10 @@ bool MotionGeneratorPlugin::initialize()
 
 	bar->addButton("Get Current Jont State")
 		->sigClicked().connect(bind(&MotionGeneratorPlugin::getCurrentJointState, this ));
+	bar->addButton("TorqueON")
+		->sigClicked().connect(bind(&MotionGeneratorPlugin::torqueON, this));
+	bar->addButton("TorqueOFF")
+		->sigClicked().connect(bind(&MotionGeneratorPlugin::torqueOFF, this));
 
 	for(int i=0;i<6;i++){
 		footSpin[i]->setAlignment(Qt::AlignCenter);
@@ -55,7 +59,20 @@ bool MotionGeneratorPlugin::initialize()
 	for(int i=0;i<6;i++) bar->addWidget(footSpin[i]);
 
 	addToolBar(bar);
+	servoMotor->rs405cb_open();
+	servoMotor->set_torque_all(64);
+
 	return true;
+}
+
+void MotionGeneratorPlugin::torqueON()
+{
+	servoMotor->enable_torque_all(1);
+}
+
+void MotionGeneratorPlugin::torqueOFF()
+{
+	servoMotor->enable_torque_all(0);
 }
 
 void MotionGeneratorPlugin::getCurrentJointState()
@@ -111,5 +128,8 @@ void MotionGeneratorPlugin::calcInverseKinematics()
 		body->joint(24)->q() = body->joint(7)->q();
 	}
 	bodyItems[0]->notifyKinematicStateChange(true);
+
+	servoMotor->set_joint_angle(0,10,rad2deg(servo_angle[0])*100);
+	servoMotor->set_joint_angle(1,10,rad2deg(servo_angle[1])*100);
 }
 
