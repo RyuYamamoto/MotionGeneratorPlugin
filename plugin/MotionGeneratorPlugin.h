@@ -22,8 +22,8 @@ using namespace cnoid;
 //実機との符号調整
 const int sign[] = {1,1,1,1,1,1,1,-1,1,-1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1}; 
 const double step[] = {0.001,0.001,0.001,0.5,0.5,0.5};
-const double limit_max[] = {10.0,10.0,10.0,50.0,50.0,50.0};
-const double limit_min[] = {-10.0,-10.0,-10.0,-50.0,-50.0,-50.0};
+const double limit_max[] = {0.1,0.1,0.1,30.0,30.0,30.0};
+const double limit_min[] = {-0.1,-0.1,0.0,-30.0,-30.0,-30.0};
 
 float deg2rad(float degree){
 	return degree * M_PI / 180.0f;
